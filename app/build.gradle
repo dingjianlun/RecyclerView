@@ -41,7 +41,8 @@ dependencies {
     implementation 'androidx.recyclerview:recyclerview:1.1.0'
 
 
-    implementation project(path: ':recyclerview')
+//    implementation project(path: ':recyclerview')
+    implementation 'com.dingjianlun:recyclerview:0.0.1'
 
 
 }

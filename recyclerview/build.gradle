@@ -27,3 +27,5 @@ dependencies {
 
     implementation 'androidx.recyclerview:recyclerview:1.1.0'
 }
+
+//apply from: '../../recyclerview-bintray.gradle'
