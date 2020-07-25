@@ -5,7 +5,7 @@
 
         <variable
             name="item"
-            type="com.dingjianlun.recyclerview.demo.MainActivity.Item2" />
+            type="com.dingjianlun.recyclerview.demo.activity.MultiTypeActivity.Item2" />
 
     </data>
 

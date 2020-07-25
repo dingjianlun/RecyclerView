@@ -16,6 +16,15 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity android:name=".activity.SingleTypeActivity" />
+
+        <activity android:name=".activity.MultiTypeActivity" />
+
+        <activity android:name=".activity.MultiAdapterActivity" />
+
+        <activity android:name=".activity.PagingActivity" />
+
     </application>
 
 </manifest>

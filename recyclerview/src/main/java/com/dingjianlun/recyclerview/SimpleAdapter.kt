@@ -6,19 +6,20 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 
-class SimpleAdapter<T>(
-    builder: SimpleAdapter<T>.() -> Unit
+open class SimpleAdapter<T>(
+    private val diffCallback: DiffUtil.ItemCallback<T>? = null,
+    builder: (SimpleAdapter<T>.() -> Unit)? = null
 ) : RecyclerView.Adapter<SimpleAdapter.ViewHolder<T>>() {
 
     fun setItem(
         layoutId: Int,
         onBind: View.(item: T) -> Unit
-    ): SimpleAdapter<T> = itemList.clear().run { addItem(null, layoutId, onBind) }
+    ): SimpleAdapter<T> = itemList.clear().run { addItem(Nothing::class.java, layoutId, onBind) }
 
     fun setItem(
         layoutId: Int,
         onBind: View.(item: T, holder: RecyclerView.ViewHolder) -> Unit
-    ): SimpleAdapter<T> = addItem(null, layoutId, onBind)
+    ): SimpleAdapter<T> = itemList.clear().run { addItem(Nothing::class.java, layoutId, onBind) }
 
     inline fun <reified R : T> addItem(
         layoutId: Int,
@@ -44,13 +45,13 @@ class SimpleAdapter<T>(
     private val itemList = ArrayList<Item<T>>()
 
     fun <R : T> addItem(
-        classes: Class<R>?,
+        classes: Class<R>,
         layoutId: Int,
         onBind: View.(item: R) -> Unit
     ) = addItem(classes, layoutId) { item, _ -> onBind.invoke(this, item) }
 
     fun <R : T> addItem(
-        classes: Class<R>?,
+        classes: Class<R>,
         layoutId: Int,
         onBind: View.(item: R, holder: ViewHolder<R>) -> Unit
     ) = addItem(classes) {
@@ -59,7 +60,7 @@ class SimpleAdapter<T>(
     }
 
     fun <R : T> addItem(
-        classes: Class<R>?,
+        classes: Class<R>,
         viewHolder: ViewHolder.Builder<R>.(viewGroup: ViewGroup) -> Unit
     ) = apply {
         val item = Item(classes) { viewGroup ->
@@ -73,15 +74,13 @@ class SimpleAdapter<T>(
     override fun getItemCount(): Int = data.size
 
     override fun getItemViewType(position: Int): Int =
-        (itemList.firstOrNull { it == getItem(position) } ?: itemList.first()).type
+        itemList.first { it == getItem(position) }.type
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder<T> =
-        (itemList.firstOrNull { it.type == viewType } ?: itemList.first())
-            .viewHolder.invoke(parent)
+        itemList.first { it.type == viewType }.viewHolder.invoke(parent)
 
     override fun onBindViewHolder(holder: ViewHolder<T>, position: Int) {
-        val item = getItem(position) ?: return
-        holder.builder.onBind?.invoke(holder.itemView, item, holder)
+        onBindViewHolder(holder, position, arrayListOf())
     }
 
     override fun onBindViewHolder(
@@ -89,7 +88,8 @@ class SimpleAdapter<T>(
         position: Int,
         payloads: MutableList<Any>
     ) {
-        super.onBindViewHolder(holder, position, payloads)
+        val item = getItem(position) ?: return
+        holder.builder.onBind?.invoke(holder.itemView, item, holder)
     }
 
     class ViewHolder<T>(
@@ -102,7 +102,7 @@ class SimpleAdapter<T>(
     }
 
     class Item<T>(
-        private val cls: Class<T>?,
+        private val cls: Class<T>,
         val viewHolder: (parent: ViewGroup) -> ViewHolder<T>
     ) {
 
@@ -116,6 +116,7 @@ class SimpleAdapter<T>(
         override fun equals(other: Any?): Boolean {
             val c1 = cls
             val c2 = other?.javaClass
+            if (c1 == Nothing::class.java) return true
             return /*if (c1 != null && c2 != null) c1.isAssignableFrom(c2) else*/ c1 == c2
         }
 
@@ -123,18 +124,23 @@ class SimpleAdapter<T>(
 
     }
 
-    fun setData(list: List<T>) = submitList(list)
+    fun setData(list: List<T>, isAnim: Boolean = true) =
+        submitList(list, isAnim)
 
-    fun addData(list: List<T>) = submitList(ArrayList(this.data).apply { addAll(list) })
+    fun addData(list: List<T>, isAnim: Boolean = true) =
+        submitList(ArrayList(this.data).apply { addAll(list) }, isAnim)
 
-    private val diffCallback: DiffUtil.ItemCallback<T>? = null
-
-    private fun submitList(list: List<T>) {
-        val oldList = ArrayList(data)
-        val newList = ArrayList(list)
-        val diffResult = calculateDiff(oldList, newList, diffCallback)
-        this.data = newList
-        diffResult.dispatchUpdatesTo(this)
+    private fun submitList(list: List<T>, isAnim: Boolean = true) {
+        if (isAnim) {
+            val oldList = ArrayList(data)
+            val newList = ArrayList(list)
+            val diffResult = calculateDiff(oldList, newList, diffCallback)
+            this.data = newList
+            diffResult.dispatchUpdatesTo(this)
+        } else {
+            this.data = list
+            notifyDataSetChanged()
+        }
     }
 
     private fun calculateDiff(
@@ -175,7 +181,7 @@ class SimpleAdapter<T>(
     })
 
     init {
-        builder.invoke(this)
+        builder?.invoke(this)
     }
 
 }
